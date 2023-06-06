@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>インベーダー崩し</title>
+    <link rel="icon" href="img/inv.png">
+    <link rel="stylesheet" href="https://unpkg.com/ress/dist/ress.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header id="header">
+
+    </header>
+    <main>
+        <div class="blockBreak">
+            <canvas id="blockCanvas" width="480" height="320">
+            </canvas>
+        </div>
+    </main>
+    <footer id="footer">
+
+    </footer>
+
+    <script>
+        // それぞれの関数宣言
+        const canvas = document.getElementById("blockCanvas");
+        const ctx = canvas.getContext("2d");
+        const ballRadius = 10; // 衝突計算用変数
+        let x = canvas.width / 2;
+        let y = canvas.height / 2
+        let dx = 3; // ballの横軸移動
+        let dy = -3; // ballの縦軸移動
+        let rightPressed = false;
+        let leftPressed = false;
+        let score = 0;
+        let lives = 3; // ライフポイント
+
+        // ボールを跳ね返すパドルのサイズと初期位置を定義
+        const paddleHeight = 10;
+        const paddleWidth = 50;
+        let paddleX = (canvas.width - paddleWidth) / 2;
+
+        // ブロックの位置やサイズを定義
+        const brickRowCount = 4;
+        const brickColumnCount = 15;
+        const brickWidth = 20;
+        const brickHeight = 20;
+        const brickPadding = 10;
+        const brickOffsetTop = 30;
+        const brickOffsetLeft = 30;
+        // 敵キャラ
+        const venom = new Image();
+        venom.src = "img/inv.png"; 
+
+        // ブロック配列
+        const bricks = [];
+        for(let c = 0;c < brickColumnCount; c++) {
+            bricks[c] = [];
+            for(let r =0;r < brickRowCount;r++) {
+                bricks[c][r] = {x: 0,y: 0,status: 1};
+            }
+        }
+
+        // パドルの移動イベントを定義
+        document.addEventListener("keydown", keyDownHandler, false);
+        document.addEventListener("keyup", keyUpHandler, false);
+        document.addEventListener("mousemove", mouseMoveHandler, false);
+
+        function keyDownHandler(e) {
+            if(e.key == "Right" || e.key == "ArrowRight") {
+                rightPressed = true;
+            } else if(e.key == "Left" || e.key == "ArrowLeft") {
+                leftPressed = true;
+            }
+        }
+        function keyUpHandler(e) {
+            if(e.key == "Right" || e.key == "ArrowRight") {
+                rightPressed = false;
+            } else if(e.key == "Left" || e.key == "ArrowLeft") {
+                leftPressed = false;
+            }
+        }
+        // マウス操作
+        function mouseMoveHandler() {
+            const relativeX = e.clientX -canvas.offsetLeft;
+            if (relativeX > 0 && relativeX < canvas.width) {
+                paddleX = relativeX - paddleWidth / 2;
+            }
+        }
+        // ブロックとボールの衝突検出
+        function collisionDetection() {
+            for(let c = 0;c < brickColumnCount;c++) {
+                for(let r = 0;r < brickRowCount;r++) {
+                    const b = bricks[c][r];
+                    if(b.status == 1) {
+                        if(x > b.x && x < b.x+brickWidth && y > b.y && y < b.y+brickHeight) {
+                            dy = -dy;
+                            b.status = 0;
+                            score++;
+                            if (score == brickRowCount * brickColumnCount) {
+                                alert("Congratulations!!");
+                                document.location.reload();
+                                clearInterval(interval);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        // ボールの動作を定義
+        function drawBall() {
+            ctx.beginPath();
+            ctx.arc(x, y, 6, 0, Math.PI * 2);
+            ctx.fillStyle = "";
+            ctx.fill();
+            ctx.closePath();
+        }
+        // パドルの動作を定義
+        function drawPaddle() {
+            ctx.beginPath();
+            ctx.rect(paddleX, canvas.height - paddleHeight, paddleWidth,paddleHeight);
+            ctx.fillStyle = "";
+            ctx.fill();
+            ctx.closePath();
+        }
+        // ブロックの描画
+        function drawBricks() {
+            for(let c=0; c<brickColumnCount; c++) {
+                for(let r=0; r < brickRowCount; r++) {
+                    if(bricks[c][r].status == 1) {
+                        let brickX = (c*(brickWidth+brickPadding))+brickOffsetLeft;
+                        let brickY = (r*(brickHeight+brickPadding))+brickOffsetTop;
+                        bricks[c][r].x = brickX;
+                        bricks[c][r].y = brickY;
+                        ctx.beginPath();
+                        ctx.drawImage(venom,brickX, brickY, brickWidth, brickHeight);
+                        ctx.fillStyle = "";
+                        ctx.fill();
+                        ctx.closePath();
+                    }
+                }
+            }
+        }
+        // スコア表示
+        function drawScore() {
+            ctx.font = "16px Arial";
+            ctx.fillStyle = "";
+            ctx.fillText('Score: ' + score, 8, 20);
+        }
+        // ライフ表示
+        function drawLives() {
+            ctx.font - "16px Arial";
+            ctx.fillStyle = "";
+            ctx.fillText('Lives: ' + lives, canvas.width - 65, 20);
+        }
+        // ブロック崩しのメイン動作部分
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawBricks();
+            drawBall(); // ボールの呼び出し
+            drawPaddle(); // パドルの呼び出し
+            drawScore();
+            drawLives();
+            collisionDetection(); // ブロックとボールの衝突検出
+            if (x + dx > canvas.width-ballRadius || x + dx < ballRadius) {
+                dx = -dx;
+            }
+            if (y + dy < ballRadius) {
+                dy = -dy;
+            }
+            // ボールが下に着いた時の判定
+            else if (y + dy > canvas.height-ballRadius) {
+                // パドルに当たれば-dyを代入
+                if(x > paddleX && x < paddleX + paddleWidth) {
+                    dy = -dy;
+                }
+                // ゲームオーバー判定
+                else {
+                    lives--;
+                    if(!lives) {
+                        alert("GAME OVER");
+                        document.location.reload();
+                        cleatInterval(interval);
+                    } else{
+                        x = canvas.width / 2;
+                        y = canvas.height - 30;
+                        dx = 2;
+                        dx = -2;
+                        paddleX = (canvas.width - paddleWidth) / 2;
+                    }
+                }
+            }
+            if(rightPressed) {
+                paddleX += 7;
+                if (paddleX + paddleWidth > canvas.width){
+                    paddleX = canvas.width - paddleWidth;
+                }
+            }
+            else if(leftPressed) {
+                paddleX -= 7;
+                if (paddleX < 0){
+                    paddleX = 0;
+                }
+            }
+            x += dx;
+            y += dy;
+            requestAnimationFrame(draw);
+        }
+        draw();
+    </script>
+
+</body>
+</html>
